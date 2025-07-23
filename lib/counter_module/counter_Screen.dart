@@ -50,65 +50,6 @@ class CounterScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         const SizedBox(height: 64),
-                        // TextFormField(
-                        //   decoration: InputDecoration(
-                        //     labelText: 'Email',
-                        //     enabledBorder: OutlineInputBorder(
-                        //       borderSide: const BorderSide(
-                        //         color: Colors.blueAccent,
-                        //         width: 2.0,
-                        //       ),
-                        //       borderRadius: BorderRadius.circular(8.0),
-                        //     ),
-                        //     border: OutlineInputBorder(
-                        //       borderRadius: BorderRadius.circular(8.0),
-                        //     ),
-                        //   ),
-                        //   validator: (value) {
-                        //     if (value == null || value.isEmpty) {
-                        //       return 'Please enter your email';
-                        //     }
-                        //     // Simple email validation
-                        //     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                        //         .hasMatch(value)) {
-                        //       return 'Please enter a valid email';
-                        //     }
-                        //     return null;
-                        //   },
-                        // ),
-                        // const SizedBox(height: 16),
-                        // TextFormField(
-                        //   decoration: InputDecoration(
-                        //     labelText: 'Password',
-                        //     border: OutlineInputBorder(
-                        //       borderRadius: BorderRadius.circular(8.0),
-                        //     ),
-                        //   ),
-                        //   validator: (value) {
-                        //     if (value == null || value.isEmpty) {
-                        //       return 'Please enter your password';
-                        //     }
-                        //     if (value.length < 6) {
-                        //       return 'Password must be at least 6 characters';
-                        //     }
-                        //     return null;
-                        //   },
-                        //   obscureText: true,
-                        // ),
-                        // const SizedBox(height: 16),
-                        // ElevatedButton(
-                        //   onPressed: () {
-                        //     if (formKey.currentState?.validate() ?? false) {
-                        //       // Handle form submission
-                        //       ScaffoldMessenger.of(context).showSnackBar(
-                        //         const SnackBar(
-                        //           content: Text('Form submitted successfully!'),
-                        //         ),
-                        //       );
-                        //     }
-                        //   },
-                        //   child: const Text('Submit'),
-                        // ),
                         const SizedBox(height: 8),
                         const Text(
                           'You have pushed the button this many times:',
