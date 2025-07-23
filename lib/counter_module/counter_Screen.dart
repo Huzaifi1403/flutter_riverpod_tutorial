@@ -13,129 +13,57 @@ class CounterScreen extends ConsumerWidget {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(), // Dismiss the keyboard
       child: Scaffold(
-        backgroundColor: Colors.blue,
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: const Text('Riverpod Counter'),
-        ),
-        body: Stack(
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 8.0),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: CircleAvatar(
-                  radius: 130,
-                  backgroundColor: Colors.blueAccent,
-                ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.6,
-                decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    )),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Form(
-                    key: formKey,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: Column(
-                      // mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        const SizedBox(height: 64),
-                        // TextFormField(
-                        //   decoration: InputDecoration(
-                        //     labelText: 'Email',
-                        //     enabledBorder: OutlineInputBorder(
-                        //       borderSide: const BorderSide(
-                        //         color: Colors.blueAccent,
-                        //         width: 2.0,
-                        //       ),
-                        //       borderRadius: BorderRadius.circular(8.0),
-                        //     ),
-                        //     border: OutlineInputBorder(
-                        //       borderRadius: BorderRadius.circular(8.0),
-                        //     ),
-                        //   ),
-                        //   validator: (value) {
-                        //     if (value == null || value.isEmpty) {
-                        //       return 'Please enter your email';
-                        //     }
-                        //     // Simple email validation
-                        //     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                        //         .hasMatch(value)) {
-                        //       return 'Please enter a valid email';
-                        //     }
-                        //     return null;
-                        //   },
-                        // ),
-                        // const SizedBox(height: 16),
-                        // TextFormField(
-                        //   decoration: InputDecoration(
-                        //     labelText: 'Password',
-                        //     border: OutlineInputBorder(
-                        //       borderRadius: BorderRadius.circular(8.0),
-                        //     ),
-                        //   ),
-                        //   validator: (value) {
-                        //     if (value == null || value.isEmpty) {
-                        //       return 'Please enter your password';
-                        //     }
-                        //     if (value.length < 6) {
-                        //       return 'Password must be at least 6 characters';
-                        //     }
-                        //     return null;
-                        //   },
-                        //   obscureText: true,
-                        // ),
-                        // const SizedBox(height: 16),
-                        // ElevatedButton(
-                        //   onPressed: () {
-                        //     if (formKey.currentState?.validate() ?? false) {
-                        //       // Handle form submission
-                        //       ScaffoldMessenger.of(context).showSnackBar(
-                        //         const SnackBar(
-                        //           content: Text('Form submitted successfully!'),
-                        //         ),
-                        //       );
-                        //     }
-                        //   },
-                        //   child: const Text('Submit'),
-                        // ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'You have pushed the button this many times:',
-                          textAlign: TextAlign.center,
-                        ),
-                        Text(
-                          '$counter',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                      ],
-                    ),
+        backgroundColor: Colors.white,
+        appBar: null,
+        body: SingleChildScrollView(
+          child: Stack(
+            children: [
+              Container(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height * 0.35,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blueAccent, Colors.white],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 50),
-          child: FloatingActionButton(
-            onPressed: () {
-              // Implement your increment logic here
-              ref.read(counterProvider.notifier).increment();
-            },
-            tooltip: 'Increment',
-            child: const Icon(Icons.add),
+              Positioned(
+                top: 10,
+                child: Image.asset(
+                        'assets/home-bg-white-1.png',
+                         width: MediaQuery.of(context).size.width,
+                         height: 50,
+                        fit: BoxFit.contain,
+                 ),
+              ),
+               Positioned(
+                 top: 10,
+                child: Image.asset(
+                        'assets/home-bg-white-2.png',
+                         width: MediaQuery.of(context).size.width,
+                         height: 50,
+                        fit: BoxFit.contain,
+                 ),
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 200.0),
+                    child: Container(
+                      height: 200,
+                      width: double.infinity,
+                      color: Colors.transparent,
+                      child: Center(
+                      ),
+                    ),
+                  )
+                ],
+              ),
+              
+            ],
           ),
         ),
       ),

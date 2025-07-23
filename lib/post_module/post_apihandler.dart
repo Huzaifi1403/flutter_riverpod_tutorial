@@ -11,7 +11,9 @@ class PostApihandler {
 
   Future<List<Post>> getPosts() async {
     debugPrint('Fetching posts List from $baseURL/posts');
-    final response = await http.get(Uri.parse('$baseURL/posts'));
+    final response = await http.get(Uri.parse('$baseURL/posts'), headers: {
+      'Content-Type': 'application/json',
+    });
     if (response.statusCode == 200) {
       final List<dynamic> jsonResponse = json.decode(response.body);
       return jsonResponse.map((post) => Post.fromJson(post)).toList();
