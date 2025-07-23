@@ -28,12 +28,15 @@ class PostScreen extends ConsumerWidget {
           },
           loading: () => const Center(child: CircularProgressIndicator()),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            PostCommon.showAddPostDialog(context, ref);
-          },
-          tooltip: 'Fetch Posts',
-          child: const Icon(Icons.add),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 50),
+          child: FloatingActionButton(
+            onPressed: () {
+              PostCommon.showAddPostDialog(context, ref);
+            },
+            tooltip: 'Fetch Posts',
+            child: const Icon(Icons.add),
+          ),
         ));
   }
 

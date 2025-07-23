@@ -127,13 +127,16 @@ class CounterScreen extends ConsumerWidget {
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            // Implement your increment logic here
-            ref.read(counterProvider.notifier).increment();
-          },
-          tooltip: 'Increment',
-          child: const Icon(Icons.add),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 50),
+          child: FloatingActionButton(
+            onPressed: () {
+              // Implement your increment logic here
+              ref.read(counterProvider.notifier).increment();
+            },
+            tooltip: 'Increment',
+            child: const Icon(Icons.add),
+          ),
         ),
       ),
     );

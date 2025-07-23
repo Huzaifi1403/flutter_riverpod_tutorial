@@ -31,12 +31,6 @@ class PostProvider extends AsyncNotifier<List<Post>> {
     );
   }
 
-  // Future<Post> getPostById(int id) async {
-  //   //In custom methods, you must manage the state transitions yourself.
-  //   final post = await ref.read(apiServiceProvider).getPostById(id);
-  //   return post;
-  // }
-
   Future<List<Comment>> getCommentsByPostId(int postId) async {
     debugPrint('Fetching comments for post ID: $postId');
     final comments =
