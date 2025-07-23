@@ -1,0 +1,85 @@
+name: Flutter CI/CD with Firebase Distribution
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.29.2'
+        channel: 'stable'
+    
+    - name: Install dependencies
+      run: flutter pub get
+    
+    - name: Build APK
+      run: flutter build apk 
+      env:
+        ANDROID_SDK_ROOT: /usr/lib/android-sdk
+        
+    - name: Upload APK to Firebase App Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+        token: ${{ secrets.FIREBASE_CLI_TOKEN }}
+        groups: testers  # or your preferred group
+        file: build/app/outputs/flutter-apk/app-release.apk
+        releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
+
+    - name: Upload APK as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release.apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 7
+
+  build-ios:
+    needs: build-android
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.29.2'
+        channel: 'stable'
+    
+    - name: Install dependencies
+      run: flutter pub get
+    
+    - name: Install Apple certificate
+      uses: apple-actions/import-codesign-certs@v2
+      with:
+        p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+        p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+        keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
+    
+    - name: Build IPA
+      run: |
+        flutter build ipa --release \
+        --dart-define=APP_ENV=production \
+        --export-options-plist=ios/ExportOptions.plist
+    
+    - name: Upload IPA to Firebase App Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
+        token: ${{ secrets.FIREBASE_CLI_TOKEN }}
+        groups: testers  # or your preferred group
+        file: build/ios/ipa/app.ipa
+        releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
+
+    - name: Upload IPA as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release.ipa
+        path: build/ios/ipa/app.ipa
+        retention-days: 7
