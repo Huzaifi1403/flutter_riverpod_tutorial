@@ -35,7 +35,7 @@ class CounterScreen extends ConsumerWidget {
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.6,
                 decoration: const BoxDecoration(
-                    color: Colors.white,
+                    color: Colors.red,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
