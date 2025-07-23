@@ -12,7 +12,18 @@ class PostProvider extends AsyncNotifier<List<Post>> {
   @override
   Future<List<Post>> build() async {
     //In build(), Riverpod handles loading/error/data for you.
-    return await ref.read(apiServiceProvider).getPosts();
+    return await getPost();
+  }
+
+  Future<List<Post>> getPost() async {
+    state = const AsyncValue.loading(); // Set the state to loading
+    state = await AsyncValue.guard(
+      () async {
+        // Fetch posts from the API
+        return await ref.read(apiServiceProvider).getPosts();
+      },
+    );
+    return state.value ?? [];
   }
 
   Future<void> addPost(Post post) async {

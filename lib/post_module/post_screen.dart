@@ -22,8 +22,24 @@ class PostScreen extends ConsumerWidget {
           },
           error: (error, stackTrace) {
             debugPrint('Error: $error');
-            return const Center(
-              child: Text('Something went wrong...'),
+            return Padding(
+              padding: const EdgeInsets.all(30),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Something went wrong...',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                      onPressed: () {
+                        ref.read(postProvider.notifier).build();
+                      },
+                      child: const Text('Retry'))
+                ],
+              ),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -40,80 +56,86 @@ class PostScreen extends ConsumerWidget {
         ));
   }
 
-  ListView showPostList(List<Post> post, WidgetRef ref) {
-    return ListView.builder(
-      itemCount: post.length,
-      itemBuilder: (context, index) {
-        return InkWell(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => PostDetailScreen(
-                      id: post[index].id,
-                    )));
-          },
-          child: Card(
-            child: ListTile(
-              title: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const CircleAvatar(
-                    backgroundColor: Colors.lightBlue,
-                    child:
-                        Icon(Icons.person_outline_rounded, color: Colors.white),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(post[index].title)),
-                  PopupMenuButton(
-                      icon: const Icon(Icons.more_vert),
-                      itemBuilder: (context) {
-                        return [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Text('Edit'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Delete'),
-                          ),
-                        ];
-                      },
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          // Handle edit action
-                          PostCommon.showAddPostDialog(context, ref,
-                              isEdit: true, post: post[index]);
-                        } else if (value == 'delete') {
-                          // Handle delete action
-                          ref
-                              .read(postProvider.notifier)
-                              .deletePost(post[index].id);
-                        }
-                      })
-                ],
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
+  RefreshIndicator showPostList(List<Post> post, WidgetRef ref) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(postProvider.notifier).build();
+      },
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: post.length,
+        itemBuilder: (context, index) {
+          return InkWell(
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => PostDetailScreen(
+                        id: post[index].id,
+                      )));
+            },
+            child: Card(
+              child: ListTile(
+                title: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(post[index].body),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                            onPressed: () {
-                              PostCommon.showCommentBottomSheet(
-                                  context, ref, post[index]);
-                            },
-                            icon: const Icon(Icons.comment_outlined)),
-                      ],
-                    )
+                    const CircleAvatar(
+                      backgroundColor: Colors.lightBlue,
+                      child: Icon(Icons.person_outline_rounded,
+                          color: Colors.white),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(post[index].title)),
+                    PopupMenuButton(
+                        icon: const Icon(Icons.more_vert),
+                        itemBuilder: (context) {
+                          return [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Text('Edit'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Delete'),
+                            ),
+                          ];
+                        },
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            // Handle edit action
+                            PostCommon.showAddPostDialog(context, ref,
+                                isEdit: true, post: post[index]);
+                          } else if (value == 'delete') {
+                            // Handle delete action
+                            ref
+                                .read(postProvider.notifier)
+                                .deletePost(post[index].id);
+                          }
+                        })
                   ],
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      Text(post[index].body),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                              onPressed: () {
+                                PostCommon.showCommentBottomSheet(
+                                    context, ref, post[index]);
+                              },
+                              icon: const Icon(Icons.comment_outlined)),
+                        ],
+                      )
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

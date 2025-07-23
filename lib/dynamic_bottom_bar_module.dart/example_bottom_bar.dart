@@ -47,12 +47,14 @@ class _ExampleBottomBarState extends State<ExampleBottomBar> {
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
               decoration: BoxDecoration(
-                color: Colors.purpleAccent,
+                color: Colors.white.withAlpha(200),
+                border: Border.all(color: Colors.grey.withAlpha(80), width: 1),
                 borderRadius: BorderRadius.circular(50),
                 boxShadow: const [
                   BoxShadow(
                     color: Colors.black26,
-                    blurRadius: 10.0,
+
+                    blurRadius: 8.0,
                     spreadRadius: 2.0,
                     offset: Offset(0, 2), // changes position of shadow
                   ),

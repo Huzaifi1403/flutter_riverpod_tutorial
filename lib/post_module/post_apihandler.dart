@@ -11,17 +11,22 @@ class PostApihandler {
 
   Future<List<Post>> getPosts() async {
     debugPrint('Fetching posts List from $baseURL/posts');
-    final response = await http.get(Uri.parse('$baseURL/posts'));
+    final response = await http.get(Uri.parse('$baseURL/posts'), headers: {
+      'Content-Type': 'application/json',
+    });
     if (response.statusCode == 200) {
       final List<dynamic> jsonResponse = json.decode(response.body);
       return jsonResponse.map((post) => Post.fromJson(post)).toList();
     } else {
-      throw Exception('Failed to load posts');
+      throw Exception('Failed to load posts, response: ${response.body}');
     }
   }
 
   Future<Post> getPostById(int postId) async {
-    final response = await http.get(Uri.parse('$baseURL/posts/$postId'));
+    final response =
+        await http.get(Uri.parse('$baseURL/posts/$postId'), headers: {
+      'Content-Type': 'application/json',
+    });
     if (response.statusCode == 200) {
       return Post.fromJson(json.decode(response.body));
     } else {
@@ -31,7 +36,9 @@ class PostApihandler {
 
   Future<List<Comment>> getCommentsByPostId(int postId) async {
     final response =
-        await http.get(Uri.parse('$baseURL/posts/$postId/comments'));
+        await http.get(Uri.parse('$baseURL/posts/$postId/comments'), headers: {
+      'Content-Type': 'application/json',
+    });
     if (response.statusCode == 200) {
       final List<dynamic> jsonResponse = json.decode(response.body);
       return jsonResponse.map((comment) => Comment.fromJson(comment)).toList();
