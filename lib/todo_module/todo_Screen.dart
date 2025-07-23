@@ -37,7 +37,7 @@ class TodoScreen extends ConsumerWidget {
   Future<dynamic> showAddTodoDialog(BuildContext context, WidgetRef ref) {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
 
     return showDialog(
       context: context,
@@ -45,7 +45,7 @@ class TodoScreen extends ConsumerWidget {
         return AlertDialog(
           title: const Text("Add Todo"),
           content: Form(
-            key: _formKey,
+            key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -75,7 +75,7 @@ class TodoScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () {
-                if (_formKey.currentState!.validate()) {
+                if (formKey.currentState!.validate()) {
                   ref.read(todoProvider.notifier).addTodo(
                       titleController.text, descriptionController.text);
                   Navigator.of(context).pop();

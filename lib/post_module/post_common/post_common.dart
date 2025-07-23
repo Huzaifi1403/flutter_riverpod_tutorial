@@ -10,7 +10,7 @@ class PostCommon {
       {bool isEdit = false, Post? post}) {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
 
     if (isEdit) {
       titleController.text = post!.title;
@@ -23,7 +23,7 @@ class PostCommon {
         return AlertDialog(
           title: const Text("Add Post"),
           content: Form(
-            key: _formKey,
+            key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -61,7 +61,7 @@ class PostCommon {
           actions: [
             TextButton(
               onPressed: () {
-                if (_formKey.currentState!.validate()) {
+                if (formKey.currentState!.validate()) {
                   if (isEdit) {
                     // edit post
                     ref.read(postProvider.notifier).updatePost(Post(
