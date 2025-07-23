@@ -21,12 +21,15 @@ class TodoScreen extends ConsumerWidget {
           return todoTile(todoList[index], ref);
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showAddTodoDialog(context, ref);
-        },
-        tooltip: 'Add Todo',
-        child: const Icon(Icons.add),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 50),
+        child: FloatingActionButton(
+          onPressed: () {
+            showAddTodoDialog(context, ref);
+          },
+          tooltip: 'Add Todo',
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
