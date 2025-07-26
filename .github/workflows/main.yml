@@ -69,20 +69,22 @@ jobs:
         --export-options-plist=ios/ExportOptions.plist \
         --verbose \
         --no-codesign 
+        # Rename the output file
+        mv build/ios/ipa/*.ipa build/ios/ipa/app-release.ipa
   
     - name: Verify IPA exists
       run: |
-        ls -la build/ios/ipa/
-        if [ ! -f "build/ios/ipa/app.ipa" ]; then
-          echo "::error::IPA file not found!"
-          exit 1
+        find build/ios -name "*.ipa" -ls
+        if [ ! -f "build/ios/ipa/flutter_riverpod_tutorial.ipa" ]; then
+        echo "::error::IPA file not found!"
+        exit 1
         fi
-    
+
     - name: Upload IPA as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-release.ipa  # Consistent naming
-        path: build/ios/ipa/app.ipa  # Standard Flutter output path
+        name: app-release.ipa
+        path: build/ios/ipa/flutter_riverpod_tutorial.ipa
         retention-days: 7
 
   distribute-ios:
