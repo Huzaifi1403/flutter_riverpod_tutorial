@@ -70,7 +70,7 @@ jobs:
             --export-options-plist=ios/ExportOptions.plist \
             --verbose \
             --codesign \
-            --xcargs="-allowProvisioningUpdates"
+            --xcargs -allowProvisioningUpdates
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
         with:
