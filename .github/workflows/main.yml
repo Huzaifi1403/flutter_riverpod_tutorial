@@ -60,7 +60,15 @@ jobs:
       - name: Install provisioning profile (manual)
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          # Decode and save the provisioning profile
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > /tmp/profile.mobileprovision
+          # Extract UUID from provisioning profile and use it as filename
+          UUID=$(grep -A1 -a "UUID" /tmp/profile.mobileprovision | grep -o "[-A-F0-9]\{36\}")
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          # List installed profiles for verification
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+          # Verify the profile contains our bundle identifier
+          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision | grep -A5 -B5 "com.example.flutterRiverpodTutorial" || echo "Bundle ID not found in profile"
       - name: Build IPA
         run: |
           flutter build ipa \
