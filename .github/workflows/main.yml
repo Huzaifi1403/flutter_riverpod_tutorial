@@ -62,13 +62,31 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           # Decode and save the provisioning profile
           echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > /tmp/profile.mobileprovision
-          # Extract UUID from provisioning profile and use it as filename
-          UUID=$(grep -A1 -a "UUID" /tmp/profile.mobileprovision | grep -o "[-A-F0-9]\{36\}")
+          # Try to extract UUID using different methods
+          echo "Attempting to extract UUID from provisioning profile..."
+          if command -v security >/dev/null 2>&1; then
+            UUID=$(security cms -D -i /tmp/profile.mobileprovision 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || echo "")
+          fi
+          if [ -z "$UUID" ]; then
+            echo "Security method failed, trying openssl..."
+            UUID=$(openssl smime -verify -inform DER -in /tmp/profile.mobileprovision -noverify 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || echo "")
+          fi
+          if [ -z "$UUID" ]; then
+            echo "UUID extraction failed, using timestamp-based filename..."
+            UUID="profile-$(date +%s)"
+          fi
+          echo "Using filename: $UUID.mobileprovision"
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
           # List installed profiles for verification
+          echo "Installed profiles:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
-          # Verify the profile contains our bundle identifier
-          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision | grep -A5 -B5 "com.example.flutterRiverpodTutorial" || echo "Bundle ID not found in profile"
+          # Try to verify the profile contains our bundle identifier
+          echo "Checking profile content..."
+          if security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision 2>/dev/null | grep -q "com.example.flutterRiverpodTutorial"; then
+            echo "✅ Bundle ID found in provisioning profile"
+          else
+            echo "⚠️  Bundle ID not found in profile, but continuing..."
+          fi
       - name: Build IPA
         run: |
           flutter build ipa \
