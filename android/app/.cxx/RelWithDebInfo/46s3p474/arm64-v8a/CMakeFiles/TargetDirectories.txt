@@ -1,0 +1,2 @@
+/Users/timetec/Desktop/flutter_riverpod/flutter_riverpod_tutorial/android/app/.cxx/RelWithDebInfo/46s3p474/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/timetec/Desktop/flutter_riverpod/flutter_riverpod_tutorial/android/app/.cxx/RelWithDebInfo/46s3p474/arm64-v8a/CMakeFiles/edit_cache.dir

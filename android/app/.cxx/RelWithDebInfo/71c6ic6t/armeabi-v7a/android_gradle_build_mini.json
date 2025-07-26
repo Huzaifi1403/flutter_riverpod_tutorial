@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Users/timetec/Desktop/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/timetec/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/timetec/Desktop/flutter_riverpod/flutter_riverpod_tutorial/android/app/.cxx/RelWithDebInfo/71c6ic6t/armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/timetec/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/timetec/Desktop/flutter_riverpod/flutter_riverpod_tutorial/android/app/.cxx/RelWithDebInfo/71c6ic6t/armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}
