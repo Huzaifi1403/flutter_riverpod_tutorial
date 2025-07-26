@@ -67,9 +67,9 @@ jobs:
         flutter build ipa \
         --dart-define=APP_ENV=production \
         --export-options-plist=ios/ExportOptions.plist \
-        --verbose
-        --no-codesign  # Add this temporarily for testing
-        
+        --verbose \
+        --no-codesign 
+  
     - name: Verify IPA exists
       run: |
         ls -la build/ios/ipa/
