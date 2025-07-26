@@ -68,7 +68,8 @@ jobs:
       run: |
         flutter build ipa --release \
         --dart-define=APP_ENV=production \
-        --export-options-plist=ios/ExportOptions.plist
+        --export-options-plist=ios/ExportOptions.plist \
+        --codesign
     
     - name: Upload IPA to Firebase App Distribution
       uses: wzieba/Firebase-Distribution-Github-Action@v1
