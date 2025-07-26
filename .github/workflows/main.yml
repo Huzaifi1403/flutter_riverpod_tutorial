@@ -5,43 +5,43 @@ on:
     branches: [ main ]
 
 jobs:
-  build-android:
-    runs-on: ubuntu-latest
+  # build-android:
+  #   runs-on: ubuntu-latest
     
-    steps:
-    - uses: actions/checkout@v4
+  #   steps:
+  #   - uses: actions/checkout@v4
     
-    - uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.29.2'
-        channel: 'stable'
+  #   - uses: subosito/flutter-action@v2
+  #     with:
+  #       flutter-version: '3.29.2'
+  #       channel: 'stable'
     
-    - name: Install dependencies
-      run: flutter pub get
+  #   - name: Install dependencies
+  #     run: flutter pub get
     
-    - name: Build APK
-      run: flutter build apk 
-      env:
-        ANDROID_SDK_ROOT: /usr/lib/android-sdk
+  #   - name: Build APK
+  #     run: flutter build apk 
+  #     env:
+  #       ANDROID_SDK_ROOT: /usr/lib/android-sdk
         
-    - name: Upload APK to Firebase App Distribution
-      uses: wzieba/Firebase-Distribution-Github-Action@v1
-      with:
-        appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-        token: ${{ secrets.FIREBASE_CLI_TOKEN }}
-        groups: testers  # or your preferred group
-        file: build/app/outputs/flutter-apk/app-release.apk
-        releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
+  #   - name: Upload APK to Firebase App Distribution
+  #     uses: wzieba/Firebase-Distribution-Github-Action@v1
+  #     with:
+  #       appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+  #       token: ${{ secrets.FIREBASE_CLI_TOKEN }}
+  #       groups: testers  # or your preferred group
+  #       file: build/app/outputs/flutter-apk/app-release.apk
+  #       releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
 
-    - name: Upload APK as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release.apk
-        path: build/app/outputs/flutter-apk/app-release.apk
-        retention-days: 7
+  #   - name: Upload APK as artifact
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: app-release.apk
+  #       path: build/app/outputs/flutter-apk/app-release.apk
+  #       retention-days: 7
 
   build-ios:
-    needs: build-android
+    # needs: build-android
     runs-on: macos-latest
     
     steps:
@@ -61,21 +61,12 @@ jobs:
         p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
         p12-password: ${{ secrets.IOS_P12_PASSWORD }}
         keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
-        create-keychain: true
-        provisioning-profile-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
     
     - name: Build IPA
       run: |
-        xcodebuild -allowProvisioningUpdates \
-        -workspace ios/Runner.xcworkspace \
-        -scheme Runner \
-        -configuration Release \
-        -archivePath build/ios/archive/Runner.xcarchive \
-        archive
-        xcodebuild -exportArchive \
-        -archivePath build/ios/archive/Runner.xcarchive \
-        -exportPath build/ios/ipa \
-        -exportOptionsPlist ios/ExportOptions.plist
+        flutter build ipa \
+        --dart-define=APP_ENV=production \
+        --export-options-plist=ios/ExportOptions.plist
     
     - name: Upload IPA to Firebase App Distribution
       uses: wzieba/Firebase-Distribution-Github-Action@v1
