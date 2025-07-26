@@ -61,6 +61,8 @@ jobs:
         p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
         p12-password: ${{ secrets.IOS_P12_PASSWORD }}
         keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
+        create-keychain: true
+        provisioning-profile-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
     
     - name: Build IPA
       run: |
