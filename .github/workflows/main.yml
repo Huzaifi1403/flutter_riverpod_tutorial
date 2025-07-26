@@ -65,7 +65,11 @@ jobs:
       #     p12-password: ${{ secrets.IOS_P12_PASSWORD }}
       - name: Build IPA
         run: |
-          flutter build ipa 
+          flutter build ipa \
+            --dart-define=APP_ENV=production \
+            --export-options-plist=ios/ExportOptions.plist \
+            --verbose \
+            --codesign
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
         with:
