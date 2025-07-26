@@ -68,6 +68,7 @@ jobs:
         --dart-define=APP_ENV=production \
         --export-options-plist=ios/ExportOptions.plist \
         --verbose
+        --no-codesign  # Add this temporarily for testing
         
     - name: Verify IPA exists
       run: |
