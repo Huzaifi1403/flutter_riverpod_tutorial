@@ -74,7 +74,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: app-release.ipa
-        path: build/ios/ipa/app.ipa
+        path: build/ios/ipa/flutter_riverpod_tutorial.ipa
         retention-days: 7
 
   distribute-ios:
@@ -85,7 +85,7 @@ jobs:
     - name: Download IPA artifact
       uses: actions/download-artifact@v4
       with:
-        name: app-release.ipa
+        name: flutter_riverpod_tutorial.ipa
         
     - name: Upload IPA to Firebase App Distribution
       uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -93,5 +93,5 @@ jobs:
         appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
         token: ${{ secrets.FIREBASE_CLI_TOKEN }}
         groups: testers
-        file: app-release.ipa
+        file: flutter_riverpod_tutorial.ipa
         releaseNotes: "Automatic build from GitHub Actions"
