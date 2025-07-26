@@ -61,61 +61,27 @@ jobs:
         p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
         p12-password: ${{ secrets.IOS_P12_PASSWORD }}
         keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
-
-    - name: Install provisioning profile
-      uses: apple-actions/import-provisioning-profile@v1
-      with:
-        provisioning-profile-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
-
-    - name: Build IPA with automatic signing
+    
+    - name: Build IPA
       run: |
         flutter build ipa \
-          --dart-define=APP_ENV=production \
-          --export-options-plist=ios/ExportOptions.plist \
-          --verbose \
-          --no-codesign 
-        # Rename the output file
-        mv build/ios/ipa/*.ipa build/ios/ipa/app-release.ipa
-  
-    - name: Verify IPA exists
-      run: |
-        find build/ios -name "*.ipa" -ls
-        if [ ! -f "build/ios/ipa/flutter_riverpod_tutorial.ipa" ]; then
-        echo "::error::IPA file not found!"
-        exit 1
-        fi
-
-    - name: Upload IPA as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release.ipa
-        path: build/ios/ipa/flutter_riverpod_tutorial.ipa
-        retention-days: 7
-
-  distribute-ios:
-    needs: build-ios
-    runs-on: ubuntu-latest
+        --dart-define=APP_ENV=production \
+        --export-options-plist=ios/ExportOptions.plist \
+        --verbose \
+        --no-codesign  # Add this temporarily for testing
     
-    steps:
-    - name: Download IPA artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: app-release.ipa  # Must match upload name
-        
-    - name: Verify downloaded IPA
-      run: |
-        ls -la
-        if [ ! -f "app-release.ipa" ]; then
-          echo "::error::Downloaded IPA file not found!"
-          exit 1
-        fi
-        
     - name: Upload IPA to Firebase App Distribution
       uses: wzieba/Firebase-Distribution-Github-Action@v1
       with:
         appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
         token: ${{ secrets.FIREBASE_CLI_TOKEN }}
-        groups: testers
-        file: app-release.ipa  # Matches downloaded filename
-        releaseNotes: "Automatic build from GitHub Actions"
-        debug: true  # For better error logging
+        groups: testers  # or your preferred group
+        file: build/ios/ipa/app.ipa
+        releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
+
+    - name: Upload IPA as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release.ipa
+        path: build/ios/ipa/app.ipa
+        retention-days: 7
