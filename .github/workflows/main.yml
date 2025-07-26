@@ -61,14 +61,19 @@ jobs:
         p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
         p12-password: ${{ secrets.IOS_P12_PASSWORD }}
         keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
-    
-    - name: Build IPA
+
+    - name: Install provisioning profile
+      uses: apple-actions/import-provisioning-profile@v1
+      with:
+        provisioning-profile-base64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+
+    - name: Build IPA with automatic signing
       run: |
         flutter build ipa \
-        --dart-define=APP_ENV=production \
-        --export-options-plist=ios/ExportOptions.plist \
-        --verbose \
-        --no-codesign 
+          --dart-define=APP_ENV=production \
+          --export-options-plist=ios/ExportOptions.plist \
+          --verbose \
+          --no-codesign 
         # Rename the output file
         mv build/ios/ipa/*.ipa build/ios/ipa/app-release.ipa
   
