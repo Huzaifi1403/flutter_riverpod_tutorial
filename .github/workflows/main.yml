@@ -98,6 +98,21 @@ jobs:
           else
             echo "⚠️  Bundle ID not found in profile, but continuing..."
           fi
+      - name: Verify code signing setup
+        run: |
+          echo "=== Verifying Certificates ==="
+          security find-identity -v -p codesigning
+          echo "=== Verifying Provisioning Profiles ==="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo "=== Profile Details ==="
+          for profile in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
+            if [ -f "$profile" ]; then
+              echo "Profile: $(basename "$profile")"
+              security cms -D -i "$profile" 2>/dev/null | plutil -extract Name raw - 2>/dev/null || echo "Could not extract name"
+              security cms -D -i "$profile" 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || echo "Could not extract UUID"
+              echo "---"
+            fi
+          done
       - name: Build IPA
         run: |
           echo "Starting Flutter IPA build..."
@@ -105,29 +120,88 @@ jobs:
           flutter --version
           xcodebuild -version
           
+          echo "=== Checking ExportOptions.plist ==="
+          cat ios/ExportOptions.plist
+          
+          echo "=== Attempting Flutter IPA build ==="
           flutter build ipa \
             --dart-define=APP_ENV=production \
             --export-options-plist=ios/ExportOptions.plist \
-            --verbose \
-            --codesign 2>&1 | tee flutter_build.log
+            --verbose 2>&1 | tee flutter_build.log
           
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           echo "Flutter build exit code: $BUILD_EXIT_CODE"
           
-          echo "=== Flutter build log tail ==="
+          # Check what files were created regardless of exit code
+          echo "=== Checking created files ==="
+          find build -name "*.ipa" -o -name "*.xcarchive" 2>/dev/null | sort || echo "No IPA or archive files found"
+          
+          echo "=== Build log analysis ==="
+          echo "Last 50 lines of build log:"
           tail -50 flutter_build.log
           
+          # Look for specific error patterns
+          if grep -q -i "error\|fail\|denied" flutter_build.log; then
+            echo "=== Found potential errors in log ==="
+            grep -i -A 2 -B 2 "error\|fail\|denied" flutter_build.log | tail -30
+          fi
+          
+          # If flutter build ipa failed, try alternative approach
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
-            echo "❌ Flutter build failed with exit code $BUILD_EXIT_CODE"
-            echo "=== Full build log ==="
-            cat flutter_build.log
-            exit $BUILD_EXIT_CODE
+            echo "❌ Flutter build ipa failed, trying alternative approach..."
+            
+            echo "=== Trying flutter build ios without export ==="
+            flutter build ios --release --no-codesign 2>&1 | tee flutter_ios_only.log
+            
+            IOS_EXIT_CODE=${PIPESTATUS[0]}
+            if [ $IOS_EXIT_CODE -eq 0 ]; then
+              echo "✅ iOS build succeeded, attempting manual archive and export..."
+              
+              cd ios
+              echo "=== Creating archive manually ==="
+              xcodebuild -workspace Runner.xcworkspace \
+                -scheme Runner \
+                -configuration Release \
+                -archivePath build/Runner.xcarchive \
+                archive \
+                DEVELOPMENT_TEAM=66VPE47DN4 \
+                CODE_SIGN_STYLE=Manual 2>&1 | tee ../manual_archive.log
+              
+              ARCHIVE_CODE=${PIPESTATUS[0]}
+              if [ $ARCHIVE_CODE -eq 0 ]; then
+                echo "✅ Archive created, exporting IPA..."
+                xcodebuild -exportArchive \
+                  -archivePath build/Runner.xcarchive \
+                  -exportPath ../build/ios/ipa \
+                  -exportOptionsPlist ExportOptions.plist 2>&1 | tee ../manual_export.log
+                
+                EXPORT_CODE=${PIPESTATUS[0]}
+                cd ..
+                
+                if [ $EXPORT_CODE -eq 0 ]; then
+                  echo "✅ Manual export succeeded!"
+                else
+                  echo "❌ Manual export failed with code $EXPORT_CODE"
+                  cat manual_export.log
+                  exit $EXPORT_CODE
+                fi
+              else
+                echo "❌ Manual archive failed with code $ARCHIVE_CODE"
+                cat manual_archive.log
+                cd ..
+                exit $ARCHIVE_CODE
+              fi
+            else
+              echo "❌ iOS build also failed"
+              cat flutter_ios_only.log
+              exit $IOS_EXIT_CODE
+            fi
           else
-            echo "✅ Flutter build completed successfully"
+            echo "✅ Flutter build ipa completed successfully"
           fi
       - name: Verify IPA file
         run: |
-          echo "Checking for IPA files..."
+          echo "Checking for IPA files and build artifacts..."
           
           # Check the most likely location first
           if [ -f "build/ios/ipa/flutter_riverpod_tutorial.ipa" ]; then
@@ -141,11 +215,29 @@ jobs:
               echo "✅ IPA file found at: $IPA_FILE"
             else
               echo "❌ No IPA file found anywhere"
-              echo "=== Debugging: Checking build directory structure ==="
-              find build -type f 2>/dev/null | grep -E "\.(ipa|xcarchive)$" || echo "No IPA or archive files found"
+              echo "=== Debugging: Complete build structure ==="
+              find build -type f 2>/dev/null | sort || echo "No build directory found"
               
-              echo "=== Checking for build directories ==="
+              echo "=== Checking for archive files ==="
+              find . -name "*.xcarchive" -type d 2>/dev/null | while read archive; do
+                echo "Archive found: $archive"
+                ls -la "$archive/Products/Applications/" 2>/dev/null || echo "No app in archive"
+              done
+              
+              echo "=== Checking build logs for errors ==="
+              if [ -f "xcodebuild_export.log" ]; then
+                echo "Export log errors:"
+                grep -i "error\|fail\|denied" xcodebuild_export.log | tail -10 || echo "No obvious errors in export log"
+              fi
+              
+              if [ -f "xcodebuild_archive.log" ]; then
+                echo "Archive log errors:"
+                grep -i "error\|fail\|denied" xcodebuild_archive.log | tail -10 || echo "No obvious errors in archive log"
+              fi
+              
+              echo "=== Checking iOS build directory ==="
               ls -la build/ios/ 2>/dev/null || echo "build/ios/ directory does not exist"
+              
               exit 1
             fi
           fi
