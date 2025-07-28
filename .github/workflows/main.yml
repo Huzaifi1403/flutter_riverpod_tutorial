@@ -108,11 +108,28 @@ jobs:
           
           flutter build ipa --export-options-plist=ios/ExportOptions.plist
       
-      - name: Upload to Firebase App Distribution
+      - name: Upload IPA as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: build/ios/ipa/flutter_riverpod_tutorial.ipa
+          retention-days: 7
+
+  distribute-ios:
+    needs: build-ios
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-app
+          path: ./
+      
+      - name: Upload IPA to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
           token: ${{ secrets.FIREBASE_CLI_TOKEN }}
           groups: testers
-          file: build/ios/ipa/flutter_riverpod_tutorial.ipa
+          file: flutter_riverpod_tutorial.ipa
           releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
