@@ -102,8 +102,6 @@ jobs:
           # Check certificates
           echo "Available certificates:"
           security find-identity -v -p codesigning
-          echo "Certificates with team ID 66VPE47DN4:"
-          security find-identity -v -p codesigning | grep "66VPE47DN4" || echo "No certificates found with team ID 66VPE47DN4"
           
           # Check provisioning profiles
           echo "Installed provisioning profiles:"
@@ -113,24 +111,30 @@ jobs:
           # we need to switch to manual signing but configure it properly
           echo "=== Configuring Xcode project for manual signing ==="
           
-          # Get the UUID of our installed provisioning profile (fix the extraction)
-          PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision | tr -d '\n')
+          # Get the UUID correctly from the actual file
+          PROFILE_FILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1)
+          PROFILE_UUID=$(basename "$PROFILE_FILE" .mobileprovision)
           echo "Using provisioning profile UUID: $PROFILE_UUID"
+          echo "Profile file path: $PROFILE_FILE"
           
           # Get the profile name for specifier (this is what Xcode actually uses)
-          PROFILE_NAME=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision | plutil -extract Name raw - 2>/dev/null || echo "Unknown")
+          PROFILE_NAME=$(security cms -D -i "$PROFILE_FILE" | plutil -extract Name raw - 2>/dev/null || echo "Unknown")
           echo "Using provisioning profile name: $PROFILE_NAME"
           
           # Configure manual signing with our specific profile NAME (not UUID)
+          # But escape special characters in the profile name for sed
+          ESCAPED_PROFILE_NAME=$(printf '%s\n' "$PROFILE_NAME" | sed 's/[[\.*^$()+?{|]/\\&/g')
+          
           sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"[^\"]*\"/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\"/g" ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"[^\"]*\"/PROVISIONING_PROFILE_SPECIFIER = \"$ESCAPED_PROFILE_NAME\"/g" ios/Runner.xcodeproj/project.pbxproj
           
           echo "✅ Xcode project configured for manual signing with profile: $PROFILE_NAME"
       
       - name: Create ExportOptions.plist
         run: |
-          # Get the profile UUID for export options (fix the extraction)
-          PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision | tr -d '\n')
+          # Get the profile UUID for export options (using correct method)
+          PROFILE_FILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1)
+          PROFILE_UUID=$(basename "$PROFILE_FILE" .mobileprovision)
           echo "Using profile UUID for ExportOptions.plist: $PROFILE_UUID"
           
           cat > ios/ExportOptions.plist << EOF
