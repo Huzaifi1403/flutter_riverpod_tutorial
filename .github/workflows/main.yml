@@ -77,9 +77,6 @@ jobs:
           
           # Copy to correct location
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          
-          # Store UUID for ExportOptions.plist
-          echo "PROFILE_UUID=$UUID" >> $GITHUB_ENV
       
       - name: Create ExportOptions.plist
         run: |
@@ -93,12 +90,7 @@ jobs:
               <key>teamID</key>
               <string>66VPE47DN4</string>
               <key>signingStyle</key>
-              <string>manual</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>com.example.flutterRiverpodTutorial1</key>
-                  <string>$PROFILE_UUID</string>
-              </dict>
+              <string>automatic</string>
               <key>destination</key>
               <string>export</string>
               <key>uploadBitcode</key>
@@ -113,7 +105,9 @@ jobs:
       
       - name: Build IPA
         run: |
-          flutter build ipa --export-options-plist=ios/ExportOptions.plist
+          flutter build ipa \
+            --export-options-plist=ios/ExportOptions.plist \
+            --build-arg="-allowProvisioningUpdates"
       
       - name: Verify IPA file
         run: |
