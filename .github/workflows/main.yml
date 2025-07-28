@@ -107,7 +107,6 @@ jobs:
         run: |
           flutter build ipa \
             --export-options-plist=ios/ExportOptions.plist \
-            -- -allowProvisioningUpdates
       
       - name: Verify IPA file
         run: |
