@@ -117,11 +117,15 @@ jobs:
           PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision | tr -d '\n')
           echo "Using provisioning profile UUID: $PROFILE_UUID"
           
-          # Configure manual signing with our specific profile
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"[^\"]*\"/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_UUID\"/g" ios/Runner.xcodeproj/project.pbxproj
+          # Get the profile name for specifier (this is what Xcode actually uses)
+          PROFILE_NAME=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision | plutil -extract Name raw - 2>/dev/null || echo "Unknown")
+          echo "Using provisioning profile name: $PROFILE_NAME"
           
-          echo "✅ Xcode project configured for manual signing with profile: $PROFILE_UUID"
+          # Configure manual signing with our specific profile NAME (not UUID)
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"[^\"]*\"/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\"/g" ios/Runner.xcodeproj/project.pbxproj
+          
+          echo "✅ Xcode project configured for manual signing with profile: $PROFILE_NAME"
       
       - name: Create ExportOptions.plist
         run: |
