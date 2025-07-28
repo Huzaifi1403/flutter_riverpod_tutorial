@@ -101,6 +101,8 @@ jobs:
           
           # Check certificates
           echo "Available certificates:"
+          security find-identity -v -p codesigning
+          echo "Certificates with team ID 66VPE47DN4:"
           security find-identity -v -p codesigning | grep "66VPE47DN4" || echo "No certificates found with team ID 66VPE47DN4"
           
           # Check provisioning profiles
@@ -111,20 +113,21 @@ jobs:
           # we need to switch to manual signing but configure it properly
           echo "=== Configuring Xcode project for manual signing ==="
           
-          # Get the UUID of our installed provisioning profile
-          PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision)
+          # Get the UUID of our installed provisioning profile (fix the extraction)
+          PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision | tr -d '\n')
           echo "Using provisioning profile UUID: $PROFILE_UUID"
           
           # Configure manual signing with our specific profile
           sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \".*\"/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_UUID\"/g" ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"[^\"]*\"/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_UUID\"/g" ios/Runner.xcodeproj/project.pbxproj
           
           echo "✅ Xcode project configured for manual signing with profile: $PROFILE_UUID"
       
       - name: Create ExportOptions.plist
         run: |
-          # Get the profile UUID for export options
-          PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision)
+          # Get the profile UUID for export options (fix the extraction)
+          PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision | tr -d '\n')
+          echo "Using profile UUID for ExportOptions.plist: $PROFILE_UUID"
           
           cat > ios/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
