@@ -102,14 +102,36 @@ jobs:
         run: |
           echo "=== Verifying Certificates ==="
           security find-identity -v -p codesigning
+          
+          echo "=== Finding the correct certificate name ==="
+          CERT_NAME=$(security find-identity -v -p codesigning | grep "66VPE47DN4" | head -1 | sed 's/.*) "\(.*\)"/\1/')
+          if [ -n "$CERT_NAME" ]; then
+            echo "✅ Found certificate: $CERT_NAME"
+            echo "SIGNING_CERTIFICATE=$CERT_NAME" >> $GITHUB_ENV
+          else
+            echo "⚠️  Could not find certificate with team ID 66VPE47DN4"
+            echo "Available certificates:"
+            security find-identity -v -p codesigning
+          fi
+          
           echo "=== Verifying Provisioning Profiles ==="
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
           echo "=== Profile Details ==="
           for profile in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
             if [ -f "$profile" ]; then
               echo "Profile: $(basename "$profile")"
-              security cms -D -i "$profile" 2>/dev/null | plutil -extract Name raw - 2>/dev/null || echo "Could not extract name"
-              security cms -D -i "$profile" 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || echo "Could not extract UUID"
+              PROFILE_NAME=$(security cms -D -i "$profile" 2>/dev/null | plutil -extract Name raw - 2>/dev/null || echo "Could not extract name")
+              PROFILE_UUID=$(security cms -D -i "$profile" 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || echo "Could not extract UUID")
+              echo "  Name: $PROFILE_NAME"
+              echo "  UUID: $PROFILE_UUID"
+              
+              # Check if this profile matches our bundle ID
+              if security cms -D -i "$profile" 2>/dev/null | grep -q "com.example.flutterRiverpodTutorial"; then
+                echo "  ✅ Matches bundle ID"
+                echo "PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+              else
+                echo "  ⚠️  Does not match bundle ID"
+              fi
               echo "---"
             fi
           done
@@ -120,10 +142,13 @@ jobs:
           flutter --version
           xcodebuild -version
           
-          echo "=== Checking ExportOptions.plist ==="
+          echo "=== Current ExportOptions.plist ==="
           cat ios/ExportOptions.plist
           
-          echo "=== Attempting Flutter IPA build ==="
+          echo "=== Available Certificates ==="
+          security find-identity -v -p codesigning
+          
+          echo "=== Building IPA with Flutter ==="
           flutter build ipa \
             --dart-define=APP_ENV=production \
             --export-options-plist=ios/ExportOptions.plist \
@@ -136,68 +161,21 @@ jobs:
           echo "=== Checking created files ==="
           find build -name "*.ipa" -o -name "*.xcarchive" 2>/dev/null | sort || echo "No IPA or archive files found"
           
-          echo "=== Build log analysis ==="
-          echo "Last 50 lines of build log:"
-          tail -50 flutter_build.log
-          
-          # Look for specific error patterns
-          if grep -q -i "error\|fail\|denied" flutter_build.log; then
-            echo "=== Found potential errors in log ==="
-            grep -i -A 2 -B 2 "error\|fail\|denied" flutter_build.log | tail -30
-          fi
-          
-          # If flutter build ipa failed, try alternative approach
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
-            echo "❌ Flutter build ipa failed, trying alternative approach..."
+            echo "❌ Flutter build failed, showing relevant error messages:"
+            # Show errors more clearly
+            echo "=== Certificate/Signing Errors ==="
+            grep -i -A 2 -B 2 "certificate\|signing\|distribution\|provisioning" flutter_build.log | tail -30
             
-            echo "=== Trying flutter build ios without export ==="
-            flutter build ios --release --no-codesign 2>&1 | tee flutter_ios_only.log
+            echo "=== Export Errors ==="
+            grep -i -A 2 -B 2 "exportarchive\|export.*error" flutter_build.log | tail -20
             
-            IOS_EXIT_CODE=${PIPESTATUS[0]}
-            if [ $IOS_EXIT_CODE -eq 0 ]; then
-              echo "✅ iOS build succeeded, attempting manual archive and export..."
-              
-              cd ios
-              echo "=== Creating archive manually ==="
-              xcodebuild -workspace Runner.xcworkspace \
-                -scheme Runner \
-                -configuration Release \
-                -archivePath build/Runner.xcarchive \
-                archive \
-                DEVELOPMENT_TEAM=66VPE47DN4 \
-                CODE_SIGN_STYLE=Manual 2>&1 | tee ../manual_archive.log
-              
-              ARCHIVE_CODE=${PIPESTATUS[0]}
-              if [ $ARCHIVE_CODE -eq 0 ]; then
-                echo "✅ Archive created, exporting IPA..."
-                xcodebuild -exportArchive \
-                  -archivePath build/Runner.xcarchive \
-                  -exportPath ../build/ios/ipa \
-                  -exportOptionsPlist ExportOptions.plist 2>&1 | tee ../manual_export.log
-                
-                EXPORT_CODE=${PIPESTATUS[0]}
-                cd ..
-                
-                if [ $EXPORT_CODE -eq 0 ]; then
-                  echo "✅ Manual export succeeded!"
-                else
-                  echo "❌ Manual export failed with code $EXPORT_CODE"
-                  cat manual_export.log
-                  exit $EXPORT_CODE
-                fi
-              else
-                echo "❌ Manual archive failed with code $ARCHIVE_CODE"
-                cat manual_archive.log
-                cd ..
-                exit $ARCHIVE_CODE
-              fi
-            else
-              echo "❌ iOS build also failed"
-              cat flutter_ios_only.log
-              exit $IOS_EXIT_CODE
-            fi
+            echo "=== Last 50 lines of build log ==="
+            tail -50 flutter_build.log
+            
+            exit $BUILD_EXIT_CODE
           else
-            echo "✅ Flutter build ipa completed successfully"
+            echo "✅ Flutter build completed successfully"
           fi
       - name: Verify IPA file
         run: |
