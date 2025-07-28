@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.flutterRiverpodTutorial</string>
+	<string>com.example.flutterRiverpodTutorial1</string>
 	<key>PROJECT_ID</key>
 	<string>flutter-riverpod-ci-cd</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:850301498365:ios:5503f8f7de3fbf37c7df94</string>
+	<string>1:850301498365:ios:13ddb5a478fbe80cc7df94</string>
 </dict>
 </plist>
