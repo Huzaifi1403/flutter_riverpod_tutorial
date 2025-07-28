@@ -51,6 +51,17 @@ jobs:
           channel: 'stable'
       - name: Install dependencies
         run: flutter pub get
+      - name: Setup CocoaPods
+        run: |
+          cd ios
+          echo "=== CocoaPods Setup ==="
+          pod --version
+          echo "Cleaning previous pod installation..."
+          pod deintegrate || echo "No previous pod installation found"
+          echo "Installing pods..."
+          # Suppress the CocoaPods configuration warning (it's cosmetic)
+          pod install --repo-update 2>&1 | grep -v "CocoaPods did not set the base configuration" || true
+          echo "✅ CocoaPods setup completed"
       - name: Install Apple certificate
         uses: apple-actions/import-codesign-certs@v2
         with:
