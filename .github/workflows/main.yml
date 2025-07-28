@@ -78,6 +78,13 @@ jobs:
           # Copy to correct location
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
       
+      - name: Configure Xcode project for automatic signing
+        run: |
+          # Enable automatic signing in the Xcode project
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*//' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE = .*//' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/"CODE_SIGN_STYLE = Manual"/"CODE_SIGN_STYLE = Automatic"/g' ios/Runner.xcodeproj/project.pbxproj
+      
       - name: Create ExportOptions.plist
         run: |
           cat > ios/ExportOptions.plist << EOF
@@ -85,20 +92,18 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-              <key>method</key>
-              <string>ad-hoc</string>
-              <key>teamID</key>
-              <string>66VPE47DN4</string>
-              <key>signingStyle</key>
-              <string>automatic</string>
               <key>destination</key>
               <string>export</string>
-              <key>uploadBitcode</key>
-              <false/>
-              <key>uploadSymbols</key>
-              <false/>
-              <key>compileBitcode</key>
-              <false/>
+              <key>method</key>
+              <string>release-testing</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>teamID</key>
+              <string>66VPE47DN4</string>
+              <key>thinning</key>
+              <string>&lt;none&gt;</string>
           </dict>
           </plist>
           EOF
@@ -106,7 +111,7 @@ jobs:
       - name: Build IPA
         run: |
           flutter build ipa \
-            --export-options-plist=ios/ExportOptions.plist \
+            --export-options-plist=ios/ExportOptions.plist
       
       - name: Verify IPA file
         run: |
