@@ -73,31 +73,45 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           # Decode and save the provisioning profile
           echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > /tmp/profile.mobileprovision
-          # Try to extract UUID using different methods
-          echo "Attempting to extract UUID from provisioning profile..."
-          if command -v security >/dev/null 2>&1; then
-            UUID=$(security cms -D -i /tmp/profile.mobileprovision 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || echo "")
-          fi
-          if [ -z "$UUID" ]; then
-            echo "Security method failed, trying openssl..."
-            UUID=$(openssl smime -verify -inform DER -in /tmp/profile.mobileprovision -noverify 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || echo "")
-          fi
+          
+          # Extract UUID and profile info
+          echo "=== Extracting provisioning profile details ==="
+          UUID=$(security cms -D -i /tmp/profile.mobileprovision 2>/dev/null | plutil -extract UUID raw - 2>/dev/null || echo "")
+          PROFILE_NAME=$(security cms -D -i /tmp/profile.mobileprovision 2>/dev/null | plutil -extract Name raw - 2>/dev/null || echo "")
+          
           if [ -z "$UUID" ]; then
             echo "UUID extraction failed, using timestamp-based filename..."
             UUID="profile-$(date +%s)"
+          else
+            echo "✅ Extracted UUID: $UUID"
+            echo "✅ Profile Name: $PROFILE_NAME"
+            
+            # Store UUID for later use in ExportOptions.plist
+            echo "PROFILE_UUID=$UUID" >> $GITHUB_ENV
+            echo "PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
           fi
+          
           echo "Using filename: $UUID.mobileprovision"
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          
           # List installed profiles for verification
-          echo "Installed profiles:"
+          echo "=== Installed profiles ==="
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
-          # Try to verify the profile contains our bundle identifier
-          echo "Checking profile content..."
-          if security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision 2>/dev/null | grep -q "com.example.flutterRiverpodTutorial"; then
+          
+          # Verify the profile contains our bundle identifier
+          echo "=== Checking profile content ==="
+          if security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision 2>/dev/null | grep -q "com.example.flutterRiverpodTutorial1"; then
             echo "✅ Bundle ID found in provisioning profile"
           else
             echo "⚠️  Bundle ID not found in profile, but continuing..."
+            echo "Expected: com.example.flutterRiverpodTutorial1"
+            echo "Profile contents (bundle IDs):"
+            security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision 2>/dev/null | grep -o "com\.[^<]*" | head -5 || echo "Could not extract bundle IDs"
           fi
+          
+          # Check what type of profile this is
+          echo "=== Profile Type Analysis ==="
+          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision 2>/dev/null | plutil -extract Entitlements.get-task-allow raw - 2>/dev/null && echo "Profile type: Development" || echo "Profile type: Distribution/AdHoc"
       - name: Verify code signing setup
         run: |
           echo "=== Verifying Certificates ==="
@@ -126,7 +140,7 @@ jobs:
               echo "  UUID: $PROFILE_UUID"
               
               # Check if this profile matches our bundle ID
-              if security cms -D -i "$profile" 2>/dev/null | grep -q "com.example.flutterRiverpodTutorial"; then
+              if security cms -D -i "$profile" 2>/dev/null | grep -q "com.example.flutterRiverpodTutorial1"; then
                 echo "  ✅ Matches bundle ID"
                 echo "PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
               else
@@ -135,6 +149,51 @@ jobs:
               echo "---"
             fi
           done
+      - name: Update ExportOptions.plist with correct UUID
+        run: |
+          echo "=== Updating ExportOptions.plist with actual provisioning profile UUID ==="
+          
+          # Use the UUID extracted from the provisioning profile
+          if [ -n "$PROFILE_UUID" ]; then
+            echo "Using provisioning profile UUID: $PROFILE_UUID"
+            echo "Profile name: $PROFILE_NAME"
+            
+            # Create updated ExportOptions.plist with the correct UUID
+            cat > ios/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string>66VPE47DN4</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <false/>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.example.flutterRiverpodTutorial1</key>
+                  <string>$PROFILE_UUID</string>
+              </dict>
+              <key>compileBitcode</key>
+              <false/>
+              <key>destination</key>
+              <string>export</string>
+          </dict>
+          </plist>
+          EOF
+            
+            echo "✅ Updated ExportOptions.plist with UUID: $PROFILE_UUID"
+          else
+            echo "⚠️  No profile UUID available, keeping current ExportOptions.plist"
+          fi
+          
+          echo "=== Final ExportOptions.plist ==="
+          cat ios/ExportOptions.plist
       - name: Build IPA
         run: |
           echo "Starting Flutter IPA build..."
@@ -161,21 +220,94 @@ jobs:
           echo "=== Checking created files ==="
           find build -name "*.ipa" -o -name "*.xcarchive" 2>/dev/null | sort || echo "No IPA or archive files found"
           
+          # Check if IPA was actually created (Flutter sometimes reports success even when export fails)
+          if [ -f "build/ios/ipa/flutter_riverpod_tutorial.ipa" ]; then
+            echo "✅ IPA file was successfully created"
+          else
+            echo "❌ IPA file was NOT created, even though Flutter may report success"
+            echo "This indicates an export failure. Checking logs..."
+            
+            # Look for export failures in the log
+            if grep -q "EXPORT FAILED\|exportArchive.*error" flutter_build.log; then
+              echo "=== Export Failure Detected ==="
+              grep -A 10 -B 5 "EXPORT FAILED\|exportArchive.*error" flutter_build.log
+            fi
+            
+            # Check for provisioning profile errors
+            if grep -q "No.*profiles.*matching" flutter_build.log; then
+              echo "=== Provisioning Profile Error ==="
+              grep -A 5 -B 5 "No.*profiles.*matching" flutter_build.log
+            fi
+            
+            # Set BUILD_EXIT_CODE to 1 to indicate failure
+            BUILD_EXIT_CODE=1
+            
+            echo "=== Attempting Alternative Export Method ==="
+            echo "Trying ad-hoc export method as fallback..."
+            
+            # Create alternative ExportOptions.plist for ad-hoc distribution
+            cat > ios/ExportOptions-adhoc.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>ad-hoc</string>
+              <key>teamID</key>
+              <string>66VPE47DN4</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <false/>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>compileBitcode</key>
+              <false/>
+              <key>destination</key>
+              <string>export</string>
+          </dict>
+          </plist>
+          EOF
+            
+            echo "=== Trying manual export with ad-hoc method ==="
+            cd ios
+            if [ -d "build/Runner.xcarchive" ]; then
+              xcodebuild -exportArchive \
+                -archivePath build/Runner.xcarchive \
+                -exportPath ../build/ios/ipa \
+                -exportOptionsPlist ExportOptions-adhoc.plist 2>&1 | tee ../adhoc_export.log
+              
+              ADHOC_EXIT_CODE=${PIPESTATUS[0]}
+              cd ..
+              
+              if [ $ADHOC_EXIT_CODE -eq 0 ] && [ -f "build/ios/ipa/flutter_riverpod_tutorial.ipa" ]; then
+                echo "✅ Ad-hoc export succeeded!"
+                BUILD_EXIT_CODE=0
+              else
+                echo "❌ Ad-hoc export also failed"
+                cat adhoc_export.log
+              fi
+            else
+              echo "❌ No archive found for manual export"
+              cd ..
+            fi
+          fi
+          
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
-            echo "❌ Flutter build failed, showing relevant error messages:"
-            # Show errors more clearly
+            echo "❌ Build failed - showing detailed error information:"
+            
             echo "=== Certificate/Signing Errors ==="
             grep -i -A 2 -B 2 "certificate\|signing\|distribution\|provisioning" flutter_build.log | tail -30
             
             echo "=== Export Errors ==="
-            grep -i -A 2 -B 2 "exportarchive\|export.*error" flutter_build.log | tail -20
+            grep -i -A 2 -B 2 "exportarchive\|export.*error\|export.*failed" flutter_build.log | tail -20
             
             echo "=== Last 50 lines of build log ==="
             tail -50 flutter_build.log
             
             exit $BUILD_EXIT_CODE
           else
-            echo "✅ Flutter build completed successfully"
+            echo "✅ Flutter build and IPA export completed successfully"
           fi
       - name: Verify IPA file
         run: |
