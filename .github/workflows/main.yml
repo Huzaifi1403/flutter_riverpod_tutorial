@@ -5,40 +5,33 @@ on:
     branches: [ main ]
 
 jobs:
-  # build-android:
-  #   runs-on: ubuntu-latest
+  build-android:
+    runs-on: ubuntu-latest
     
-  #   steps:
-  #   - uses: actions/checkout@v4
+    steps:
+    - uses: actions/checkout@v4
     
-  #   - uses: subosito/flutter-action@v2
-  #     with:
-  #       flutter-version: '3.29.2'
-  #       channel: 'stable'
+    - uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.29.2'
+        channel: 'stable'
     
-  #   - name: Install dependencies
-  #     run: flutter pub get
+    - name: Install dependencies
+      run: flutter pub get
     
-  #   - name: Build APK
-  #     run: flutter build apk 
-  #     env:
-  #       ANDROID_SDK_ROOT: /usr/lib/android-sdk
+    - name: Build APK
+      run: flutter build apk 
+      env:
+        ANDROID_SDK_ROOT: /usr/lib/android-sdk
         
-  #   - name: Upload APK to Firebase App Distribution
-  #     uses: wzieba/Firebase-Distribution-Github-Action@v1
-  #     with:
-  #       appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-  #       token: ${{ secrets.FIREBASE_CLI_TOKEN }}
-  #       groups: testers  # or your preferred group
-  #       file: build/app/outputs/flutter-apk/app-release.apk
-  #       releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
-
-  #   - name: Upload APK as artifact
-  #     uses: actions/upload-artifact@v4
-  #     with:
-  #       name: app-release.apk
-  #       path: build/app/outputs/flutter-apk/app-release.apk
-  #       retention-days: 7
+    - name: Upload APK to Firebase App Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+        token: ${{ secrets.FIREBASE_CLI_TOKEN }}
+        groups: testers
+        file: build/app/outputs/flutter-apk/app-release.apk
+        releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
 
   build-ios:
     runs-on: macos-latest
@@ -70,72 +63,22 @@ jobs:
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > /tmp/profile.mobileprovision
-          
-          # Extract UUID from provisioning profile
           UUID=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract UUID raw -)
-          echo "Provisioning Profile UUID: $UUID"
-          
-          # Check profile type and details
-          echo "=== Profile Analysis ==="
-          PROFILE_NAME=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract Name raw - 2>/dev/null || echo "Unknown")
-          echo "Profile Name: $PROFILE_NAME"
-          
-          # Check if it's development or distribution
-          GET_TASK_ALLOW=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract Entitlements.get-task-allow raw - 2>/dev/null || echo "false")
-          if [ "$GET_TASK_ALLOW" = "true" ]; then
-            echo "Profile Type: Development"
-          else
-            echo "Profile Type: Distribution/Ad-hoc"
-          fi
-          
-          # Check bundle ID
-          echo "Checking bundle ID in profile..."
-          security cms -D -i /tmp/profile.mobileprovision | grep -o "com\.example\.flutterRiverpodTutorial1" && echo "✅ Bundle ID found" || echo "⚠️ Bundle ID not found"
-          
-          # Copy to correct location
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
       
-      - name: Configure Xcode project for automatic signing
+      - name: Configure Xcode project for manual signing
         run: |
-          echo "=== Verifying Signing Setup ==="
-          
-          # Check certificates
-          echo "Available certificates:"
-          security find-identity -v -p codesigning
-          
-          # Check provisioning profiles
-          echo "Installed provisioning profiles:"
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles directory"
-          
-          # Since GitHub Actions can't auto-generate profiles like local Xcode,
-          # we need to switch to manual signing but configure it properly
-          echo "=== Configuring Xcode project for manual signing ==="
-          
-          # Get the UUID correctly from the actual file
           PROFILE_FILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1)
-          PROFILE_UUID=$(basename "$PROFILE_FILE" .mobileprovision)
-          echo "Using provisioning profile UUID: $PROFILE_UUID"
-          echo "Profile file path: $PROFILE_FILE"
-          
-          # Get the profile name for specifier (this is what Xcode actually uses)
-          PROFILE_NAME=$(security cms -D -i "$PROFILE_FILE" | plutil -extract Name raw - 2>/dev/null || echo "Unknown")
-          echo "Using provisioning profile name: $PROFILE_NAME"
-          
-          # Configure manual signing with our specific profile NAME (not UUID)
-          # But escape special characters in the profile name for sed
+          PROFILE_NAME=$(security cms -D -i "$PROFILE_FILE" | plutil -extract Name raw -)
           ESCAPED_PROFILE_NAME=$(printf '%s\n' "$PROFILE_NAME" | sed 's/[[\.*^$()+?{|]/\\&/g')
           
           sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"[^\"]*\"/PROVISIONING_PROFILE_SPECIFIER = \"$ESCAPED_PROFILE_NAME\"/g" ios/Runner.xcodeproj/project.pbxproj
-          
-          echo "✅ Xcode project configured for manual signing with profile: $PROFILE_NAME"
       
-      - name: Create ExportOptions.plist
+      - name: Build IPA
         run: |
-          # Get the profile UUID for export options (using correct method)
           PROFILE_FILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1)
           PROFILE_UUID=$(basename "$PROFILE_FILE" .mobileprovision)
-          echo "Using profile UUID for ExportOptions.plist: $PROFILE_UUID"
           
           cat > ios/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -163,75 +106,13 @@ jobs:
           </plist>
           EOF
           
-          echo "=== Created ExportOptions.plist ==="
-          cat ios/ExportOptions.plist
+          flutter build ipa --export-options-plist=ios/ExportOptions.plist
       
-      - name: Build IPA
-        run: |
-          flutter build ipa \
-            --export-options-plist=ios/ExportOptions.plist
-      
-      - name: Verify IPA file
-        run: |
-          if [ -f "build/ios/ipa/flutter_riverpod_tutorial.ipa" ]; then
-            echo "✅ IPA file created successfully"
-            echo "IPA_PATH=build/ios/ipa/flutter_riverpod_tutorial.ipa" >> $GITHUB_ENV
-            ls -lh build/ios/ipa/flutter_riverpod_tutorial.ipa
-          else
-            echo "❌ IPA file not found"
-            find build -name "*.ipa" 2>/dev/null || echo "No IPA files found"
-            exit 1
-          fi
-      
-      - name: Upload IPA as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-app
-          path: ${{ env.IPA_PATH }}
-          retention-days: 7
-
-  distribute-ios:
-    needs: build-ios
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download IPA artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ios-app
-          path: ./
-      
-      - name: List downloaded files
-        run: |
-          echo "Downloaded files:"
-          ls -la ./
-          
-          # The IPA should be named flutter_riverpod_tutorial.ipa based on your project
-          if [ -f "flutter_riverpod_tutorial.ipa" ]; then
-            echo "✅ Found flutter_riverpod_tutorial.ipa"
-            mv flutter_riverpod_tutorial.ipa app-release.ipa
-          else
-            # Fallback: look for any IPA file
-            IPA_FILES=(*.ipa)
-            if [ -f "${IPA_FILES[0]}" ]; then
-              echo "✅ Found IPA file: ${IPA_FILES[0]}, renaming to app-release.ipa"
-              mv "${IPA_FILES[0]}" app-release.ipa
-            else
-              echo "❌ No IPA file found in downloaded artifacts"
-              echo "Available files:"
-              ls -la ./
-              exit 1
-            fi
-          fi
-          
-          echo "Final file check:"
-          ls -la ./app-release.ipa
-          file app-release.ipa
-      
-      - name: Upload IPA to Firebase App Distribution
+      - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
           token: ${{ secrets.FIREBASE_CLI_TOKEN }}
           groups: testers
-          file: app-release.ipa
+          file: build/ios/ipa/flutter_riverpod_tutorial.ipa
           releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
