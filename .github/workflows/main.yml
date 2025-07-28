@@ -137,7 +137,7 @@ jobs:
               <key>destination</key>
               <string>export</string>
               <key>method</key>
-              <string>release-testing</string>
+              <string>development</string>
               <key>signingStyle</key>
               <string>manual</string>
               <key>provisioningProfiles</key>
