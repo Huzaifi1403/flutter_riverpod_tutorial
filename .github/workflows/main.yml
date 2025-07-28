@@ -89,27 +89,67 @@ jobs:
           fi
       - name: Build IPA
         run: |
+          echo "Starting Flutter IPA build..."
           flutter build ipa \
             --dart-define=APP_ENV=production \
             --export-options-plist=ios/ExportOptions.plist \
             --verbose \
             --codesign
+          
+          BUILD_EXIT_CODE=$?
+          echo "Flutter build exit code: $BUILD_EXIT_CODE"
+          
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "❌ Flutter build failed with exit code $BUILD_EXIT_CODE"
+            exit $BUILD_EXIT_CODE
+          else
+            echo "✅ Flutter build completed successfully"
+          fi
       - name: Verify IPA file
         run: |
           echo "Checking for IPA files..."
-          ls -la build/ios/ipa/
-          if [ -f build/ios/ipa/*.ipa ]; then
-            echo "✅ IPA file found"
-            file build/ios/ipa/*.ipa
+          echo "=== Complete build directory structure ==="
+          find build -type f 2>/dev/null | sort
+          
+          echo "=== Searching for IPA files specifically ==="
+          find . -name "*.ipa" -type f 2>/dev/null || echo "No IPA files found anywhere"
+          
+          echo "=== Checking expected IPA location ==="
+          if [ -d "build/ios/ipa" ]; then
+            echo "Contents of build/ios/ipa/:"
+            ls -la build/ios/ipa/
           else
-            echo "❌ No IPA file found"
+            echo "build/ios/ipa/ directory does not exist"
+          fi
+          
+          echo "=== Checking archive location ==="
+          if [ -d "build/ios/archive" ]; then
+            echo "Contents of build/ios/archive/:"
+            ls -la build/ios/archive/
+            # Sometimes IPA is inside the archive
+            find build/ios/archive -name "*.ipa" -type f 2>/dev/null || echo "No IPA in archive"
+          else
+            echo "build/ios/archive/ directory does not exist"
+          fi
+          
+          # Check if any IPA was created anywhere
+          IPA_FILE=$(find . -name "*.ipa" -type f | head -1)
+          if [ -n "$IPA_FILE" ]; then
+            echo "✅ IPA file found at: $IPA_FILE"
+            file "$IPA_FILE"
+            echo "IPA_PATH=$IPA_FILE" >> $GITHUB_ENV
+          else
+            echo "❌ No IPA file found anywhere"
+            echo "=== Build exit status check ==="
+            echo "Flutter build seems to have completed, but no IPA was generated."
+            echo "This might be a signing or export configuration issue."
             exit 1
           fi
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-app
-          path: build/ios/ipa/*.ipa
+          path: ${{ env.IPA_PATH }}
           retention-days: 7
 
   distribute-ios:
@@ -125,8 +165,18 @@ jobs:
         run: |
           echo "Downloaded files:"
           ls -la ./
-          # Rename the IPA file to a consistent name for Firebase distribution
-          mv *.ipa app-release.ipa || echo "No IPA file to rename"
+          # Look for the specific IPA file (should be flutter_riverpod_tutorial.ipa)
+          if [ -f "flutter_riverpod_tutorial.ipa" ]; then
+            echo "✅ Found flutter_riverpod_tutorial.ipa"
+            mv flutter_riverpod_tutorial.ipa app-release.ipa
+          elif [ -f *.ipa ]; then
+            echo "✅ Found IPA file, renaming..."
+            mv *.ipa app-release.ipa
+          else
+            echo "❌ No IPA file found"
+            exit 1
+          fi
+          echo "Final file check:"
           ls -la ./
       - name: Upload IPA to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
