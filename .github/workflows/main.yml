@@ -75,18 +75,57 @@ jobs:
           UUID=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract UUID raw -)
           echo "Provisioning Profile UUID: $UUID"
           
+          # Check profile type and details
+          echo "=== Profile Analysis ==="
+          PROFILE_NAME=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract Name raw - 2>/dev/null || echo "Unknown")
+          echo "Profile Name: $PROFILE_NAME"
+          
+          # Check if it's development or distribution
+          GET_TASK_ALLOW=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract Entitlements.get-task-allow raw - 2>/dev/null || echo "false")
+          if [ "$GET_TASK_ALLOW" = "true" ]; then
+            echo "Profile Type: Development"
+          else
+            echo "Profile Type: Distribution/Ad-hoc"
+          fi
+          
+          # Check bundle ID
+          echo "Checking bundle ID in profile..."
+          security cms -D -i /tmp/profile.mobileprovision | grep -o "com\.example\.flutterRiverpodTutorial1" && echo "✅ Bundle ID found" || echo "⚠️ Bundle ID not found"
+          
           # Copy to correct location
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
       
       - name: Configure Xcode project for automatic signing
         run: |
-          # Enable automatic signing in the Xcode project
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*//' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PROVISIONING_PROFILE = .*//' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/"CODE_SIGN_STYLE = Manual"/"CODE_SIGN_STYLE = Automatic"/g' ios/Runner.xcodeproj/project.pbxproj
+          echo "=== Verifying Signing Setup ==="
+          
+          # Check certificates
+          echo "Available certificates:"
+          security find-identity -v -p codesigning | grep "66VPE47DN4" || echo "No certificates found with team ID 66VPE47DN4"
+          
+          # Check provisioning profiles
+          echo "Installed provisioning profiles:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles directory"
+          
+          # Since GitHub Actions can't auto-generate profiles like local Xcode,
+          # we need to switch to manual signing but configure it properly
+          echo "=== Configuring Xcode project for manual signing ==="
+          
+          # Get the UUID of our installed provisioning profile
+          PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision)
+          echo "Using provisioning profile UUID: $PROFILE_UUID"
+          
+          # Configure manual signing with our specific profile
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \".*\"/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_UUID\"/g" ios/Runner.xcodeproj/project.pbxproj
+          
+          echo "✅ Xcode project configured for manual signing with profile: $PROFILE_UUID"
       
       - name: Create ExportOptions.plist
         run: |
+          # Get the profile UUID for export options
+          PROFILE_UUID=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1 | xargs basename -s .mobileprovision)
+          
           cat > ios/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -97,7 +136,12 @@ jobs:
               <key>method</key>
               <string>release-testing</string>
               <key>signingStyle</key>
-              <string>automatic</string>
+              <string>manual</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.example.flutterRiverpodTutorial1</key>
+                  <string>$PROFILE_UUID</string>
+              </dict>
               <key>stripSwiftSymbols</key>
               <true/>
               <key>teamID</key>
@@ -107,6 +151,9 @@ jobs:
           </dict>
           </plist>
           EOF
+          
+          echo "=== Created ExportOptions.plist ==="
+          cat ios/ExportOptions.plist
       
       - name: Build IPA
         run: |
