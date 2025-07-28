@@ -94,11 +94,22 @@ jobs:
             --export-options-plist=ios/ExportOptions.plist \
             --verbose \
             --codesign
+      - name: Verify IPA file
+        run: |
+          echo "Checking for IPA files..."
+          ls -la build/ios/ipa/
+          if [ -f build/ios/ipa/*.ipa ]; then
+            echo "✅ IPA file found"
+            file build/ios/ipa/*.ipa
+          else
+            echo "❌ No IPA file found"
+            exit 1
+          fi
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release.ipa
-          path: build/ios/ipa/app.ipa
+          name: ios-app
+          path: build/ios/ipa/*.ipa
           retention-days: 7
 
   distribute-ios:
@@ -108,7 +119,15 @@ jobs:
       - name: Download IPA artifact
         uses: actions/download-artifact@v4
         with:
-          name: app-release.ipa
+          name: ios-app
+          path: ./
+      - name: List downloaded files
+        run: |
+          echo "Downloaded files:"
+          ls -la ./
+          # Rename the IPA file to a consistent name for Firebase distribution
+          mv *.ipa app-release.ipa || echo "No IPA file to rename"
+          ls -la ./
       - name: Upload IPA to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
