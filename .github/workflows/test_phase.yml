@@ -2,7 +2,7 @@ name: Flutter Test Phase - Firebase Distribution
 
 on:
   push:
-    branches: [ test-phase-branch ]
+    branches: [ 'test-phase-branch' ]
 
 jobs:
   build-android:
