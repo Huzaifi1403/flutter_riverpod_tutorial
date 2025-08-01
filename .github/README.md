@@ -1,9 +1,66 @@
 # Flutter CI/CD Workflows
 
+## ⚠️ Critical Files - DO NOT CHANGE
+
+**To keep CI/CD working, these files and settings must remain unchanged:**
+
+### 🚨 Never Change These:
+
+#### **GitHub Secrets (Repository Level)**
+```
+FIREBASE_ANDROID_APP_ID
+FIREBASE_IOS_APP_ID  
+FIREBASE_CLI_TOKEN
+IOS_P12_BASE64
+IOS_P12_PASSWORD
+IOS_PROVISIONING_PROFILE
+KEYCHAIN_PASSWORD
+```
+
+#### **App Identity Configuration**
+```yaml
+# Apple Developer Team ID (in workflows)
+teamID: 66VPE47DN4
+
+# Bundle Identifiers
+iOS: com.example.flutterRiverpodTutorial1
+Android: com.example.flutter_riverpod_tutorial
+```
+
+#### **Critical Files**
+```
+ios/Runner/GoogleService-Info.plist     # Firebase iOS config
+android/app/google-services.json        # Firebase Android config
+ios/Runner.xcodeproj/project.pbxproj    # iOS bundle ID & signing
+android/app/build.gradle                # Android bundle ID
+ios/ExportOptions.plist                 # iOS export configuration (CI/CD overwrites this)
+```
+
+### ✅ Safe to Change:
+- 📱 App code in `lib/`
+- 🎨 Assets, images, fonts
+- 📦 Dependencies in `pubspec.yaml`
+- 🔢 Version numbers
+- 📝 App name and description
+- 🛠️ Build configurations (gradle versions, etc.)
+
+### 🔍 Before Merging PRs:
+```bash
+# Check if critical files were modified
+git diff main..feature-branch ios/Runner.xcodeproj/project.pbxproj | grep PRODUCT_BUNDLE_IDENTIFIER
+git diff main..feature-branch android/app/build.gradle | grep applicationId
+git diff main..feature-branch ios/Runner/GoogleService-Info.plist
+git diff main..feature-branch android/app/google-services.json
+```
+
+**Rule: If it's related to app identity, signing, or Firebase config - don't change it!**
+
+---
+
 This project has two separate workflows for different stages of development:
 
 ## 📱 Test Phase Workflow (`test_phase.yml`)
-**Triggers**: Push to `main` or `develop` branches  
+**Triggers**: Push to `main` for testflight & beta or `develop` branches  
 **Purpose**: Quick testing and Firebase distribution for internal testing
 
 ### What it does:
