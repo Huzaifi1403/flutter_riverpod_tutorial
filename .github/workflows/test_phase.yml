@@ -31,7 +31,7 @@ jobs:
         token: ${{ secrets.FIREBASE_CLI_TOKEN }}
         groups: testers
         file: build/app/outputs/flutter-apk/app-release.apk
-        releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
+        releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})" #change here for the release notes
 
   build-ios:
     runs-on: macos-latest
@@ -152,4 +152,4 @@ jobs:
           token: ${{ secrets.FIREBASE_CLI_TOKEN }}
           groups: testers
           file: flutter_riverpod_tutorial.ipa
-          releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})"
+          releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})" #change here for the release notes

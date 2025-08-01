@@ -2,7 +2,7 @@ name: Flutter Production Release - TestFlight & Play Store
 
 on:
   push:
-    branches: [ 'other' ]
+    branches: [ 'main' ]
 
 jobs:
   build-android-release:
