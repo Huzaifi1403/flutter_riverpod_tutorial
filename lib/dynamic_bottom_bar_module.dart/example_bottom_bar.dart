@@ -49,23 +49,23 @@ class _ExampleBottomBarState extends State<ExampleBottomBar> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(50),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                filter: ImageFilter.blur(sigmaX: 1, sigmaY: 2),
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                  margin: const EdgeInsets.only(left:  32, right: 32, top: 0, bottom: 24),
                   decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(50),
                   boxShadow: const [
                     BoxShadow(
-                    color: Colors.white,
-                    blurRadius: 20.0,
+                  color: Colors.transparent,
+                    blurRadius: 0.0,
                     spreadRadius: 0.0,
-                    offset: Offset(0, 2),
+                    offset: Offset(0,0),
                     ),
                   ],
                   border: Border.all(
                     color: Colors.black.withOpacity(0.10),
-                    width: 3,
+                    width: 1.5,
                   ),
                   ),
                   child: Padding(
@@ -77,13 +77,21 @@ class _ExampleBottomBarState extends State<ExampleBottomBar> {
                       onPressed: () {
                       pageController.jumpToPage(0);
                       },
-                      icon: Icon(Icons.home),
+                      icon: Image.asset(
+                      'assets/nav-day-home.png',
+                      width: 40,
+                      height: 40,
+                      ),
                     ),
                     IconButton(
                       onPressed: () {
                       pageController.jumpToPage(1);
                       },
-                      icon: Icon(Icons.newspaper),
+                      icon: Image.asset(
+                      'assets/nav-day-market.png',
+                      width: 40,
+                      height: 40,
+                      ),
                     ),
                     Container(
                       decoration: const BoxDecoration(
@@ -99,22 +107,30 @@ class _ExampleBottomBarState extends State<ExampleBottomBar> {
                       ],
                       ),
                       child: Image.asset(
-                        'assets/chatbot-round.gif',
-                        width: 50,
-                        height: 50,
+                        'assets/nav-day-lunex.png',
+                        width: 40,
+                        height: 40,
                       ),
                     ),
                     IconButton(
                       onPressed: () {
                       pageController.jumpToPage(3);
                       },
-                      icon: const Icon(Icons.notifications),
+                      icon: Image.asset(
+                      'assets/nav-day-bell.png',
+                      width: 40,
+                      height: 40,
+                      ),
                     ),
                     IconButton(
                       onPressed: () {
                       pageController.jumpToPage(4);
                       },
-                      icon: const Icon(Icons.person),
+                      icon: Image.asset(
+                      'assets/nav-day-more.png',
+                      width: 40,
+                      height: 40,
+                      ),
                     ),
                     ],
                   ),
