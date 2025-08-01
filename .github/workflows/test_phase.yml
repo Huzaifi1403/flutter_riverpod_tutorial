@@ -29,7 +29,7 @@ jobs:
       with:
         appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
         token: ${{ secrets.FIREBASE_CLI_TOKEN }}
-        groups: testers
+        groups: testers # Specify tester groups
         file: build/app/outputs/flutter-apk/app-release.apk
         releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})" #change here for the release notes
 
@@ -150,6 +150,6 @@ jobs:
         with:
           appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
           token: ${{ secrets.FIREBASE_CLI_TOKEN }}
-          groups: testers
+          groups: testers # Specify tester groups
           file: flutter_riverpod_tutorial.ipa
           releaseNotes: "Automatic build from GitHub Actions (Commit: ${{ github.sha }})" #change here for the release notes

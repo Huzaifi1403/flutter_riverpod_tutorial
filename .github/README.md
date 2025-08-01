@@ -33,7 +33,6 @@ ios/Runner/GoogleService-Info.plist     # Firebase iOS config
 android/app/google-services.json        # Firebase Android config
 ios/Runner.xcodeproj/project.pbxproj    # iOS bundle ID & signing
 android/app/build.gradle                # Android bundle ID
-ios/ExportOptions.plist                 # iOS export configuration (CI/CD overwrites this)
 .github/workflows/test_phase.yml         # Test phase CI/CD workflow
 .github/workflows/release.yml            # Production release CI/CD workflow
 ```
