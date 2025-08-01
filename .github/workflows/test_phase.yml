@@ -2,16 +2,16 @@ name: Flutter Test Phase - Firebase Distribution
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ 'main' ]
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4  # Downloads the repository code to the runner
     
-    - uses: subosito/flutter-action@v2
+    - uses: subosito/flutter-action@v2  # Installs Flutter SDK on the runner
       with:
         flutter-version: '3.29.2'
         channel: 'stable'
@@ -25,7 +25,7 @@ jobs:
         ANDROID_SDK_ROOT: /usr/lib/android-sdk
         
     - name: Upload APK to Firebase App Distribution
-      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      uses: wzieba/Firebase-Distribution-Github-Action@v1  # Uploads APK to Firebase App Distribution for testing
       with:
         appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
         token: ${{ secrets.FIREBASE_CLI_TOKEN }}
@@ -36,10 +36,10 @@ jobs:
   build-ios:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4  # Downloads the repository code to the macOS runner
       
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v2  # Installs Flutter SDK on the macOS runner
         with:
           flutter-version: '3.29.2'
           channel: 'stable'
@@ -53,7 +53,7 @@ jobs:
           pod install --repo-update
       
       - name: Install Apple certificate
-        uses: apple-actions/import-codesign-certs@v2
+        uses: apple-actions/import-codesign-certs@v2  # Installs iOS development certificates for code signing
         with:
           p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
@@ -61,25 +61,44 @@ jobs:
       
       - name: Install provisioning profile
         run: |
+          # Create the directory where macOS stores provisioning profiles
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          
+          # Decode the base64-encoded provisioning profile from GitHub secrets and save it temporarily
           echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > /tmp/profile.mobileprovision
+          
+          # Extract the UUID from the provisioning profile (required for file naming)
           UUID=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract UUID raw -)
+          
+          # Copy the profile to the correct location with proper UUID naming convention
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
       
       - name: Configure Xcode project for manual signing
         run: |
+          # Find the installed provisioning profile file
           PROFILE_FILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1)
+         
+          # Extract the profile name (this is what Xcode uses for PROVISIONING_PROFILE_SPECIFIER)
           PROFILE_NAME=$(security cms -D -i "$PROFILE_FILE" | plutil -extract Name raw -)
+          
+            # Escape special characters in profile name for safe sed replacement
           ESCAPED_PROFILE_NAME=$(printf '%s\n' "$PROFILE_NAME" | sed 's/[[\.*^$()+?{|]/\\&/g')
           
+          # Switch from automatic signing to manual signing in Xcode project
           sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' ios/Runner.xcodeproj/project.pbxproj
+          
+          # Set the specific provisioning profile to use (by name, not UUID)
           sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"[^\"]*\"/PROVISIONING_PROFILE_SPECIFIER = \"$ESCAPED_PROFILE_NAME\"/g" ios/Runner.xcodeproj/project.pbxproj
       
       - name: Build IPA
         run: |
+          # Get the provisioning profile file path
           PROFILE_FILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1)
+         
+          # Extract UUID from filename (needed for ExportOptions.plist)
           PROFILE_UUID=$(basename "$PROFILE_FILE" .mobileprovision)
           
+          # Create ExportOptions.plist to specify how the IPA should be exported
           cat > ios/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -88,28 +107,29 @@ jobs:
               <key>destination</key>
               <string>export</string>
               <key>method</key>
-              <string>development</string>
+              <string>development</string>                <!-- Export method: development (for testing) -->
               <key>signingStyle</key>
-              <string>manual</string>
+              <string>manual</string>                     <!-- Use manual signing (not automatic) -->
               <key>provisioningProfiles</key>
               <dict>
-                  <key>com.example.flutterRiverpodTutorial1</key>
-                  <string>$PROFILE_UUID</string>
+                  <key>com.example.flutterRiverpodTutorial1</key>  <!-- Bundle ID -->
+                  <string>$PROFILE_UUID</string>         <!-- Provisioning profile UUID -->
               </dict>
               <key>stripSwiftSymbols</key>
-              <true/>
+              <true/>                                     <!-- Remove Swift symbols to reduce size -->
               <key>teamID</key>
-              <string>66VPE47DN4</string>
+              <string>66VPE47DN4</string>                 <!-- Apple Developer Team ID -->
               <key>thinning</key>
-              <string>&lt;none&gt;</string>
+              <string>&lt;none&gt;</string>               <!-- No app thinning for development -->
           </dict>
           </plist>
           EOF
           
+          # Build the IPA using Flutter with our custom export options
           flutter build ipa --export-options-plist=ios/ExportOptions.plist
       
       - name: Upload IPA as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4  # Saves the IPA file as a downloadable artifact
         with:
           name: ios-app
           path: build/ios/ipa/flutter_riverpod_tutorial.ipa
@@ -120,13 +140,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download IPA artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4  # Downloads the IPA file from the previous job
         with:
           name: ios-app
           path: ./
       
       - name: Upload IPA to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        uses: wzieba/Firebase-Distribution-Github-Action@v1  # Uploads IPA to Firebase App Distribution for iOS testing
         with:
           appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
           token: ${{ secrets.FIREBASE_CLI_TOKEN }}
